@@ -1,0 +1,215 @@
+------------------------------------------------------I have Used MSSQL for solving the Questions--------------------------------------------------------------
+
+--Retrieve the first name, last name, and working location of all employees.
+
+
+select e.first_name,e.last_name,l.city
+from employees e
+join shops s 
+ON s.coffeeshop_id=e.coffeeshop_id
+join locations l
+on l.city_id=s.city_id
+
+-- Count of Employees in each country
+
+select l.country,count(*)
+from employees e
+join shops s 
+ON s.coffeeshop_id=e.coffeeshop_id
+join locations l
+on l.city_id=s.city_id
+group by l.country
+
+-- Find the total number of employees hired in each year.
+
+select year(hire_date),count(*)
+from employees
+group by year(hire_date)
+
+--List all shops with their city and country.
+
+
+select s.coffeeshop_name,l.city,l.country
+from shops s
+join locations l
+on l.city_id=s.city_id
+
+--Find the names of all suppliers that supply "Robusta".
+
+
+SELECT DISTINCT supplier_name
+from suppliers
+where coffee_type='Robusta'
+
+--Retrieve the average salary of employees grouped by gender.
+
+
+select case when gender='M' then 'Male'
+        when gender='F' then 'Female' end as Gender,avg(salary)
+from employees
+group by gender
+
+--List the names of all employees who earn more than the average salary.
+
+
+select * from employees where salary >( select avg(salary)
+from employees)
+
+--Find the full names and hire dates of employees who were hired after January 1, 2020.
+
+
+select concat(e.first_name,' ',e.last_name)  as Full_Name ,e.hire_date
+from employees e
+where e.hire_date >'2020-01-01'
+
+--Retrieve the names of employees and their corresponding shop names for shops in "London".
+
+select e.first_name,e.last_name,l.city
+from employees e
+join shops s 
+ON s.coffeeshop_id=e.coffeeshop_id
+join locations l
+on l.city_id=s.city_id
+where l.city='London'
+
+
+--Find the total number of suppliers for each type of coffee.
+
+select coffee_type,count(*)
+from suppliers
+group by coffee_type
+
+
+--Find the employees with the highest salary in each city.
+
+
+select * from
+(select e.employee_id,e.first_name,e.last_name,salary,city,ROW_NUMBER() over (PARTITION by l.city_id order by e.salary desc)rn
+from employees e
+join shops s
+on e.coffeeshop_id=s.coffeeshop_id
+join locations l
+on l.city_id=s.city_id) s
+where rn=1
+
+-- List the names of employees who do not work in shops located in the "United States".
+
+select *
+from employees e
+join shops s
+on e.coffeeshop_id=s.coffeeshop_id
+join locations l
+on l.city_id=s.city_id
+where l.country<>'United States'
+
+--Find the shops that have more than three employees earning more than $50,000.
+
+select s.coffeeshop_name,count(*)
+from employees e
+join shops s
+on e.coffeeshop_id=s.coffeeshop_id
+where e.salary>50000
+group by s.coffeeshop_name
+having count(*) >3
+
+--Retrieve the average salary of employees grouped by the country of their shop.
+
+select l.country,avg(e.salary)
+from employees e
+join shops s
+on e.coffeeshop_id=s.coffeeshop_id
+join locations l
+on l.city_id=s.city_id
+GROUP BY l.country
+
+--Find the names of employees whose salary is greater than the salary of all employees in the same shop.
+
+
+SELECT e1.first_name, e1.last_name
+FROM employees e1
+WHERE e1.salary > ALL (
+    SELECT e2.salary
+    FROM employees e2
+    WHERE e2.coffeeshop_id = e1.coffeeshop_id AND e2.employee_id != e1.employee_id
+	)
+
+
+
+--Select all employees with missing email addresses
+
+SELECT *
+FROM employees
+WHERE email IS NULL
+
+-- Select all employees whose emails are not missing
+
+SELECT *
+FROM employees
+WHERE NOT email IS NULL
+
+
+-- Uppercase first and last names
+
+SELECT
+	first_name,
+	UPPER(first_name) AS first_name_upper,
+	last_name,
+	UPPER(last_name) AS last_name_upper
+FROM employees
+
+
+-- TRIM
+
+SELECT
+    LEN('     HELLO     ') AS hello_with_spaces,
+LEN('HELLO') AS hello_no_spaces,
+    LEN(TRIM('     HELLO     ')) AS hello_trimmed
+
+---- SUBSTRING
+
+-- Get the email from the 5th character
+
+SELECT 
+	email,
+	SUBSTRING(email FROM 5)
+FROM employees
+
+
+-- CASE, CASE with GROUP BY, and CASE for transposing data
+
+-- CASE
+-- If pay is less than 50k, then low pay, otherwise high pay
+SELECT employee_id,first_name,last_name as full_name,salary,
+CASE WHEN salary < 50000 THEN 'low pay'
+     WHEN salary >= 50000 THEN 'high pay'
+	ELSE 'no pay'
+	END as pay_category
+FROM employees
+ORDER BY salary DESC
+
+-- If pay is less than 20k, then low pay
+-- if between 20k-50k inclusive, then medium pay
+-- if over 50k, then high pay
+
+SELECT employee_id, first_name,last_name as full_name,salary,
+CASE WHEN salary < 20000 THEN 'low pay'
+	WHEN salary BETWEEN 20000 and 50000 THEN 'medium pay'
+	WHEN salary > 50000 THEN 'high pay'
+	ELSE 'no pay'
+	END as pay_category
+FROM employees
+ORDER BY salary DESC
+
+
+-- Return the count of employees in each pay category
+SELECT a.pay_category, COUNT(*)
+FROM(
+SELECT employee_id,first_name,last_name as full_name,salary,
+CASE WHEN salary < 20000 THEN 'low pay'
+	 WHEN salary BETWEEN 20000 and 50000 THEN 'medium pay'
+	 WHEN salary > 50000 THEN 'high pay'
+	 ELSE 'no pay'
+		END as pay_category
+	FROM employees
+) a
+GROUP BY a.pay_category
